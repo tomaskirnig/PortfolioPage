@@ -2,7 +2,6 @@
 
 import { motion } from "framer-motion";
 import PortfolioCard from "@/components/PortfolioCard";
-import ViewToggle from "@/components/ViewToggle";
 import { portfolioData } from "@/data/portfolio";
 
 export default function GridPage() {
@@ -36,9 +35,6 @@ export default function GridPage() {
           ))}
         </motion.div>
       </div>
-
-      {/* View Toggle */}
-      <ViewToggle />
     </main>
   );
 }

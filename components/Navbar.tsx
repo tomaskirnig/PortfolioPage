@@ -22,9 +22,9 @@ export default function Navbar() {
           <Link href="/grid" className="text-slate-600 dark:text-white/80 hover:text-slate-900 dark:hover:text-white transition-colors font-medium">
             Work
           </Link>
-          <a href="#about" className="text-slate-600 dark:text-white/80 hover:text-slate-900 dark:hover:text-white transition-colors font-medium">
+          <Link href="/about" className="text-slate-600 dark:text-white/80 hover:text-slate-900 dark:hover:text-white transition-colors font-medium">
             About
-          </a>
+          </Link>
           <a href="#contact" className="text-slate-600 dark:text-white/80 hover:text-slate-900 dark:hover:text-white transition-colors font-medium">
             Contact
           </a>

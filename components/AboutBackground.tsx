@@ -1,80 +1,114 @@
 "use client";
 
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, type ReactNode } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { SphereGeometry, BoxGeometry, TetrahedronGeometry, MathUtils } from "three";
 import { Float } from "@react-three/drei";
 
-function MorphingShape() {
+function MorphingShapes() {
   const meshRef = useRef<THREE.Mesh>(null);
-  
-  // Create geometries with same vertex count for morphing
-  // For simplicity and performance, we'll use a shader-like approach or just lerp positions
-  // However, a very effective way to "morph" is to use a displacement shader on a sphere
-  // OR we can use the same number of vertices and map them.
-  
-  const vertexCount = 1024; // Use a decent number of vertices
-  
-  const { spherePositions, boxPositions, trianglePositions } = useMemo(() => {
-    const sphereGeom = new SphereGeometry(1, 32, 32);
-    const boxGeom = new BoxGeometry(1.5, 1.5, 1.5, 16, 16, 16);
-    const triGeom = new TetrahedronGeometry(1.5, 12); // Using detail to get enough vertices
+  const geomRef = useRef<THREE.BufferGeometry>(null);
 
-    // Function to sample positions from a geometry to a fixed size array
-    const getPositions = (geom: any, count: number) => {
-      const pos = geom.attributes.position.array;
-      const result = new Float32Array(count * 3);
-      for (let i = 0; i < count; i++) {
-        const stride = i * 3;
-        const sourceStride = (i % (pos.length / 3)) * 3;
-        result[stride] = pos[sourceStride];
-        result[stride + 1] = pos[sourceStride + 1];
-        result[stride + 2] = pos[sourceStride + 2];
+  const { boxPositions, spherePositions, tetraPositions, vertexCount } = useMemo(() => {
+    // 1. Create a segmented Box as the base (ensures flat faces)
+    const segments = 16;
+    const size = 2;
+    const baseBox = new BoxGeometry(size, size, size, segments, segments, segments);
+    
+    // Convert to non-indexed to make vertex manipulation straightforward
+    const boxGeom = baseBox.toNonIndexed();
+    const posAttr = boxGeom.attributes.position;
+    const rawPos = posAttr.array;
+    
+    // 2. Filter for only 3 faces (+x, +y, +z)
+    const filtered: number[] = [];
+    const threshold = (size / 2) - 0.01;
+
+    for (let i = 0; i < rawPos.length; i += 9) {
+      // Check if the triangle belongs to one of the 3 faces we want
+      // We check the center of the triangle
+      const mx = (rawPos[i] + rawPos[i+3] + rawPos[i+6]) / 3;
+      const my = (rawPos[i+1] + rawPos[i+4] + rawPos[i+7]) / 3;
+      const mz = (rawPos[i+2] + rawPos[i+5] + rawPos[i+8]) / 3;
+
+      if (mx > threshold || my > threshold || mz > threshold) {
+        for (let j = 0; j < 9; j++) filtered.push(rawPos[i + j]);
       }
-      return result;
-    };
+    }
 
-    return {
-      spherePositions: getPositions(sphereGeom, vertexCount),
-      boxPositions: getPositions(boxGeom, vertexCount),
-      trianglePositions: getPositions(triGeom, vertexCount),
+    const count = filtered.length / 3;
+    const boxPos = new Float32Array(filtered);
+    const spherePos = new Float32Array(filtered.length);
+    const tetraPos = new Float32Array(filtered.length);
+
+    // Tetrahedron planes
+    const tetraSize = 2.2;
+    const tetraD = tetraSize * 0.4;
+    const s = 1 / Math.sqrt(3);
+    const tetraNormals = [
+      new THREE.Vector3(s, s, s),
+      new THREE.Vector3(s, -s, -s),
+      new THREE.Vector3(-s, s, -s),
+      new THREE.Vector3(-s, -s, s)
+    ];
+
+    const vec = new THREE.Vector3();
+    for (let i = 0; i < count; i++) {
+      vec.set(boxPos[i * 3], boxPos[i * 3 + 1], boxPos[i * 3 + 2]);
+
+      // --- Sphere: Spherify the box point ---
+      const sVec = vec.clone().normalize().multiplyScalar(1.5);
+      spherePos[i * 3] = sVec.x;
+      spherePos[i * 3 + 1] = sVec.y;
+      spherePos[i * 3 + 2] = sVec.z;
+
+      // --- Tetra: Project onto planes ---
+      const dir = vec.clone().normalize();
+      let minT = Infinity;
+      for (const n of tetraNormals) {
+        const denom = n.dot(dir);
+        if (denom > 0.001) {
+          const t = tetraD / denom;
+          if (t < minT) minT = t;
+        }
+      }
+      const tVec = dir.multiplyScalar(minT === Infinity ? 1 : minT);
+      tetraPos[i * 3] = tVec.x;
+      tetraPos[i * 3 + 1] = tVec.y;
+      tetraPos[i * 3 + 2] = tVec.z;
+    }
+
+    return { 
+      boxPositions: boxPos, 
+      spherePositions: spherePos, 
+      tetraPositions: tetraPos,
+      vertexCount: count 
     };
   }, []);
-
-  const geomRef = useRef<THREE.BufferGeometry>(null);
 
   useFrame(({ clock }) => {
     if (!geomRef.current) return;
 
-    const t = clock.getElapsedTime() % 12; // 12 seconds for full cycle (4s each)
-    const phase = t / 4; // 0 to 3
-    const section = Math.floor(phase);
-    const alpha = MathUtils.smoothstep(phase % 1, 0, 1);
+    const t = clock.getElapsedTime() % 12;
+    const phase = Math.floor(t / 4);
+    const subTime = t % 4;
+    const alpha = MathUtils.smoothstep(subTime, 2, 4);
 
-    const positions = geomRef.current.attributes.position.array as Float32Array;
-    
     let from, to;
-    if (section === 0) { // Sphere to Box
-      from = spherePositions;
-      to = boxPositions;
-    } else if (section === 1) { // Box to Triangle
-      from = boxPositions;
-      to = trianglePositions;
-    } else { // Triangle to Sphere
-      from = trianglePositions;
-      to = spherePositions;
-    }
+    if (phase === 0) { from = spherePositions; to = boxPositions; }
+    else if (phase === 1) { from = boxPositions; to = tetraPositions; }
+    else { from = tetraPositions; to = spherePositions; }
 
+    const pos = geomRef.current.attributes.position.array as Float32Array;
     for (let i = 0; i < vertexCount * 3; i++) {
-      positions[i] = MathUtils.lerp(from[i], to[i], alpha);
+      pos[i] = MathUtils.lerp(from[i], to[i], alpha);
     }
-    
     geomRef.current.attributes.position.needsUpdate = true;
-    
+
     if (meshRef.current) {
-      meshRef.current.rotation.y += 0.005;
-      meshRef.current.rotation.z += 0.003;
+      meshRef.current.rotation.y += 0.002;
+      meshRef.current.rotation.z += 0.001;
     }
   });
 
@@ -84,30 +118,63 @@ function MorphingShape() {
         <bufferAttribute
           attach="attributes-position"
           count={vertexCount}
-          array={spherePositions}
+          array={new Float32Array(spherePositions)}
           itemSize={3}
-          args={[spherePositions, 3]}
+          args={[new Float32Array(spherePositions), 3]}
         />
       </bufferGeometry>
       <meshStandardMaterial 
         color="#4f46e5" 
         wireframe 
         emissive="#4f46e5" 
-        emissiveIntensity={0.5} 
+        emissiveIntensity={2} 
+        side={THREE.DoubleSide}
       />
     </mesh>
   );
 }
 
-export default function AboutBackground() {
+function ScrollPositioner({
+  offsetRef,
+  children,
+}: {
+  offsetRef: { current: number };
+  children: ReactNode;
+}) {
+  const groupRef = useRef<THREE.Group>(null);
+  const currentX = useRef(0);
+
+  useFrame((_, delta) => {
+    if (groupRef.current) {
+      const targetX = (offsetRef.current ?? 0) * 1.7;
+      const speed = 2;
+      const lerpFactor = 1 - Math.exp(-speed * delta);
+      currentX.current += (targetX - currentX.current) * lerpFactor;
+      groupRef.current.position.x = currentX.current;
+    }
+  });
+
+  return <group ref={groupRef}>{children}</group>;
+}
+
+interface AboutBackgroundProps {
+  offsetRef?: { current: number };
+}
+
+export default function AboutBackground({ offsetRef }: AboutBackgroundProps) {
+  const defaultRef = useRef(0);
+  const activeRef = offsetRef ?? defaultRef;
+
   return (
     <div className="fixed inset-0 -z-10 bg-slate-950">
       <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
         <ambientLight intensity={0.5} />
         <pointLight position={[10, 10, 10]} intensity={1} />
-        <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
-          <MorphingShape />
-        </Float>
+        <ScrollPositioner offsetRef={activeRef}>
+          <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
+            <MorphingShapes />
+          </Float>
+        </ScrollPositioner>
       </Canvas>
     </div>
   );

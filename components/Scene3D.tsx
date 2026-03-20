@@ -25,6 +25,20 @@ function Model() {
   const meshRef = useRef<Group>(null);
 
   useEffect(() => {
+    if (scene) {
+      scene.traverse((child) => {
+        if ((child as any).isMesh) {
+          const mesh = child as any;
+          mesh.material.wireframe = true;
+          mesh.material.color = new Color("#4f46e5");
+          mesh.material.transparent = true;
+          mesh.material.opacity = 0.3;
+          mesh.material.emissive = new Color("#4f46e5");
+          mesh.material.emissiveIntensity = 0.5;
+        }
+      });
+    }
+
     if (meshRef.current) {
       const box = new Box3().setFromObject(meshRef.current);
       console.log("📍 Map Boundaries (World Space):", {

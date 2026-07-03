@@ -136,21 +136,27 @@ function MorphingShapes() {
 
 function ScrollPositioner({
   offsetRef,
+  scaleRef,
   children,
 }: {
   offsetRef: { current: number };
+  scaleRef: { current: number };
   children: ReactNode;
 }) {
   const groupRef = useRef<THREE.Group>(null);
   const currentX = useRef(0);
+  const currentScale = useRef(1);
 
   useFrame((_, delta) => {
     if (groupRef.current) {
       const targetX = (offsetRef.current ?? 0) * 1.7;
+      const targetScale = scaleRef.current ?? 1;
       const speed = 2;
       const lerpFactor = 1 - Math.exp(-speed * delta);
       currentX.current += (targetX - currentX.current) * lerpFactor;
+      currentScale.current += (targetScale - currentScale.current) * lerpFactor;
       groupRef.current.position.x = currentX.current;
+      groupRef.current.scale.setScalar(currentScale.current);
     }
   });
 
@@ -159,18 +165,21 @@ function ScrollPositioner({
 
 interface AboutBackgroundProps {
   offsetRef?: { current: number };
+  scaleRef?: { current: number };
 }
 
-export default function AboutBackground({ offsetRef }: AboutBackgroundProps) {
+export default function AboutBackground({ offsetRef, scaleRef }: AboutBackgroundProps) {
   const defaultRef = useRef(0);
+  const defaultScaleRef = useRef(1);
   const activeRef = offsetRef ?? defaultRef;
+  const activeScaleRef = scaleRef ?? defaultScaleRef;
 
   return (
     <div className="fixed inset-0 -z-10 bg-slate-950">
       <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
         <ambientLight intensity={0.5} />
         <pointLight position={[10, 10, 10]} intensity={1} />
-        <ScrollPositioner offsetRef={activeRef}>
+        <ScrollPositioner offsetRef={activeRef} scaleRef={activeScaleRef}>
           <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
             <MorphingShapes />
           </Float>

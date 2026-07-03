@@ -3,7 +3,7 @@ export const aboutTranslations = {
     navbar: {
       home: "Home",
       work: "Work",
-      about: "About",
+      threeD: "3D",
       contact: "Contact"
     },
     hero: {
@@ -30,13 +30,18 @@ export const aboutTranslations = {
     footer: {
       heading: "Let's build something amazing together.",
       cta: "Get in Touch"
+    },
+    grid: {
+      title: "Selected Work",
+      subtitle: "A collection of projects exploring web development, 3D graphics, and user interface design.",
+      viewProject: "View Project"
     }
   },
   cs: {
     navbar: {
       home: "Domů",
       work: "Práce",
-      about: "O mně",
+      threeD: "3D",
       contact: "Kontakt"
     },
     hero: {
@@ -63,6 +68,11 @@ export const aboutTranslations = {
     footer: {
       heading: "Pojďme společně vytvořit něco úžasného.",
       cta: "Kontaktujte mě"
+    },
+    grid: {
+      title: "Vybrané práce",
+      subtitle: "Kolekce projektů zaměřených na webový vývoj, 3D grafiku a design uživatelského rozhraní.",
+      viewProject: "Zobrazit projekt"
     }
   }
 };

@@ -3,6 +3,8 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { PortfolioItem } from "@/data/portfolio";
+import { useLanguage } from "@/data/LanguageContext";
+import { aboutTranslations } from "@/data/translations";
 
 interface PortfolioCardProps {
   item: PortfolioItem;
@@ -10,6 +12,9 @@ interface PortfolioCardProps {
 }
 
 export default function PortfolioCard({ item, index }: PortfolioCardProps) {
+  const { language } = useLanguage();
+  const t = aboutTranslations[language].grid;
+
   return (
     <motion.article
       initial={{ opacity: 0, y: 20 }}
@@ -60,7 +65,7 @@ export default function PortfolioCard({ item, index }: PortfolioCardProps) {
             rel="noopener noreferrer"
             className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 bg-slate-900 dark:bg-slate-700 text-white text-sm font-semibold rounded-lg hover:bg-blue-600 dark:hover:bg-blue-600 transition-colors duration-300 mt-auto"
           >
-            View Project
+            {t.viewProject}
             <svg 
               xmlns="http://www.w3.org/2000/svg" 
               width="16" 

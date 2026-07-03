@@ -8,6 +8,7 @@ import { aboutTranslations } from "@/data/translations";
 
 export default function Navbar() {
   const pathname = usePathname();
+  const is3DView = pathname === "/3d";
   const isGridView = pathname === "/grid";
   const { language, toggleLanguage } = useLanguage();
   const t = aboutTranslations[language].navbar;
@@ -22,8 +23,8 @@ export default function Navbar() {
           <Link href="/grid" className="text-slate-600 dark:text-white/80 hover:text-slate-900 dark:hover:text-white transition-colors font-medium">
             {t.work}
           </Link>
-          <Link href="/about" className="text-slate-600 dark:text-white/80 hover:text-slate-900 dark:hover:text-white transition-colors font-medium">
-            {t.about}
+          <Link href="/3d" className="text-slate-600 dark:text-white/80 hover:text-slate-900 dark:hover:text-white transition-colors font-medium">
+            {t.threeD}
           </Link>
           <a href="#contact" className="text-slate-600 dark:text-white/80 hover:text-slate-900 dark:hover:text-white transition-colors font-medium">
             {t.contact}
@@ -33,12 +34,12 @@ export default function Navbar() {
 
       <div className="flex items-center gap-6">
         <div className="flex gap-1 bg-slate-100 dark:bg-white/10 backdrop-blur-sm rounded-full p-1 shadow-inner border border-slate-200 dark:border-white/10">
-          <Link href="/">
+          <Link href="/3d">
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               className={`px-4 py-1.5 rounded-full text-sm font-medium transition-all ${
-                !isGridView
+                is3DView
                   ? "bg-white dark:bg-purple-600 text-purple-600 dark:text-white shadow-md"
                   : "text-slate-600 dark:text-white/70 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-white/10"
               }`}
